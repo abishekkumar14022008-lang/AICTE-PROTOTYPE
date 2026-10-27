@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AICTE Complaint Monitoring System — Hackathon Prototype</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--blue:#1d4ed8;--blue-d:#1e3a8a;--blue-l:#e0e7ff;--bg:#f1f5f9;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--green:#16a34a;--amber:#d97706;--red:#dc2626;--purple:#7c3aed;--shadow:0 1px 3px rgba(15,23,42,.08),0 4px 12px rgba(15,23,42,.04)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+button,input,select,textarea{font:inherit}
+.app{display:flex;min-height:100vh}
+.sidebar{width:250px;background:var(--blue-d);color:#cbd5e1;position:fixed;inset:0 auto 0 0;display:flex;flex-direction:column;z-index:50;transition:transform .2s}
+.brand{padding:20px;border-bottom:1px solid rgba(255,255,255,.1)}
+.brand h1{font-size:16px;color:#fff;line-height:1.3}
+.brand p{font-size:11px;color:#93c5fd;margin-top:4px}
+.nav{padding:12px;flex:1}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;background:none;color:inherit;border-radius:8px;cursor:pointer;text-align:left;margin-bottom:2px}
+.nav button:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav button.active{background:var(--blue);color:#fff}
+.nav .ic{width:20px;text-align:center}
+.nav .badge{margin-left:auto;background:var(--red);color:#fff;font-size:11px;padding:0 7px;border-radius:10px}
+.side-foot{padding:14px 20px;font-size:11px;color:#93c5fd;border-top:1px solid rgba(255,255,255,.1)}
+.main{flex:1;margin-left:250px;display:flex;flex-direction:column;min-width:0}
+.topbar{background:#fff;border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:40}
+.topbar h2{font-size:18px;flex:1}
+.menu-btn{display:none;border:0;background:none;font-size:22px;cursor:pointer}
+.icon-btn{position:relative;border:1px solid var(--border);background:#fff;border-radius:50%;width:38px;height:38px;cursor:pointer;font-size:16px}
+.icon-btn .dot{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;font-size:10px;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+.profile{display:flex;align-items:center;gap:8px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600}
+.profile small{display:block;color:var(--muted);font-size:11px}
+.content{padding:24px;flex:1}
+.demo-banner{background:#fef3c7;border:1px solid #fcd34d;color:#92400e;padding:8px 14px;border-radius:8px;font-size:12px;margin-bottom:18px}
+.view{display:none}.view.active{display:block}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:18px;border:1px solid var(--border)}
+.stat{display:flex;gap:14px;align-items:center}
+.stat .si{width:46px;height:46px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.stat .num{font-size:26px;font-weight:700}
+.stat .lbl{color:var(--muted);font-size:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.card h3{font-size:15px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+.chart-box{position:relative;height:260px}
+.list-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.list-item:last-child{border:0}
+.list-item b{font-size:13px}.list-item small{color:var(--muted);display:block;font-size:12px}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.s-Submitted{background:#e0e7ff;color:#3730a3}.s-Under{background:#fef3c7;color:#92400e}.s-Action{background:#ede9fe;color:#5b21b6}.s-Resolved{background:#dcfce7;color:#166534}
+.p-Low{background:#f1f5f9;color:#475569}.p-Medium{background:#dbeafe;color:#1e40af}.p-High{background:#ffedd5;color:#9a3412}.p-Critical{background:#fee2e2;color:#991b1b}
+.overdue-tag{background:var(--red);color:#fff}
+.filters{display:grid;grid-template-columns:2fr repeat(5,1fr) auto;gap:10px;margin-bottom:14px}
+input,select,textarea{width:100%;padding:9px 11px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--blue-l);border-color:var(--blue)}
+.btn{padding:9px 16px;border-radius:8px;border:1px solid transparent;cursor:pointer;font-weight:600;font-size:13px;white-space:nowrap}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-d)}
+.btn-ghost{background:#fff;border-color:#cbd5e1;color:var(--text)}.btn-ghost:hover{background:var(--bg)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-sm{padding:5px 10px;font-size:12px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:980px}
+th{background:#f8fafc;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);padding:10px;border-bottom:1px solid var(--border)}
+td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr.is-overdue td{background:#fef2f2}
+tr.is-overdue td:first-child{box-shadow:inset 3px 0 var(--red)}
+td select{padding:5px 8px;font-size:12px;width:auto}
+.meta{color:var(--muted);font-size:12px;margin-bottom:10px}
+.empty{text-align:center;padding:40px;color:var(--muted)}
+.empty .e-ic{font-size:36px;margin-bottom:6px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid .full{grid-column:1/-1}
+label{display:block;font-weight:600;font-size:13px;margin-bottom:5px}
+label .req{color:var(--red)}
+.err{color:var(--red);font-size:12px;margin-top:3px;display:none}
+.field.invalid input,.field.invalid select,.field.invalid textarea{border-color:var(--red)}
+.field.invalid .err{display:block}
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;justify-content:center;z-index:100;padding:16px}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:12px;max-width:640px;width:100%;max-height:90vh;overflow:auto;padding:22px}
+.modal h3{font-size:17px;margin-bottom:14px;display:flex;justify-content:space-between}
+.dl{display:grid;grid-template-columns:150px 1fr;gap:8px 12px;margin-bottom:16px}
+.dl dt{color:var(--muted);font-size:12px}
+.timeline{border-left:2px solid var(--border);margin-left:6px;padding-left:16px}
+.tl{position:relative;padding-bottom:12px}
+.tl::before{content:"";position:absolute;left:-23px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--blue)}
+.tl small{color:var(--muted)}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 16px;border-radius:8px;color:#fff;box-shadow:var(--shadow);font-size:13px;max-width:320px}
+.toast.success{background:var(--green)}.toast.error{background:var(--red)}.toast.info{background:var(--blue)}
+.notif{display:flex;gap:12px;padding:12px;border-radius:8px;margin-bottom:8px;border:1px solid var(--border);cursor:pointer;align-items:flex-start}
+.notif:hover{background:#f8fafc}
+.notif .ni{font-size:18px}
+.notif.red{border-left:4px solid var(--red)}.notif.amber{border-left:4px solid var(--amber)}.notif.purple{border-left:4px solid var(--purple)}
+.loader{display:flex;align-items:center;justify-content:center;gap:10px;padding:60px;color:var(--muted)}
+.spin{width:22px;height:22px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.footer{text-align:center;color:var(--muted);font-size:12px;padding:16px;border-top:1px solid var(--border);background:#fff}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.overlay{display:none}
+@media(max-width:1100px){.cards{grid-template-columns:repeat(2,1fr)}.filters{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}.sidebar{transform:translateX(-100%)}.sidebar.open{transform:none}.main{margin-left:0}.menu-btn{display:block}.overlay.open{display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:45}.profile div{display:none}}
+@media(max-width:560px){.cards{grid-template-columns:1fr 1fr}.filters,.form-grid{grid-template-columns:1fr}.content{padding:14px}.dl{grid-template-columns:1fr}.stat .num{font-size:20px}.topbar h2{font-size:15px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><h1>🏛️ AICTE Complaint Monitoring System</h1><p>Centralized Complaint Tracking and Resolution Dashboard</p></div>
+    <nav class="nav" id="nav">
+      <button data-view="dashboard" class="active"><span class="ic">📊</span>Dashboard</button>
+      <button data-view="complaints"><span class="ic">📋</span>All Complaints</button>
+      <button data-view="add"><span class="ic">➕</span>Add Complaint</button>
+      <button data-view="reports"><span class="ic">📈</span>Reports &amp; Analytics</button>
+      <button data-view="notifications"><span class="ic">🔔</span>Notifications<span class="badge" id="navBadge">0</span></button>
+      <button data-view="settings"><span class="ic">⚙️</span>Settings &amp; About</button>
+    </nav>
+    <div class="side-foot">Hackathon prototype · v1.0</div>
+  </aside>
+  <div class="overlay" id="overlay"></div>
+  <div class="main">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="Open menu">☰</button>
+      <h2 id="pageTitle">Dashboard</h2>
+      <button class="icon-btn" id="bellBtn" aria-label="Notifications">🔔<span class="dot" id="bellCount">0</span></button>
+      <div class="profile"><span class="avatar">AD</span><div><b>Administrator</b><small>Demo account</small></div></div>
+    </header>
+    <main class="content">
+      <div class="demo-banner">⚠️ All records shown are <b>fictional demo data</b> created for a hackathon. They are not actual AICTE records.</div>
+      <div id="loading" class="loader"><span class="spin"></span>Loading complaint records…</div>
+
+      <!-- DASHBOARD -->
+      <section class="view" id="view-dashboard">
+        <div class="cards">
+          <div class="card stat"><div class="si" style="background:#e0e7ff">📁</div><div><div class="num" id="cTotal">0</div><div class="lbl">Total Complaints</div></div></div>
+          <div class="card stat"><div class="si" style="background:#fef3c7">⏳</div><div><div class="num" id="cPending">0</div><div class="lbl">Pending Complaints</div></div></div>
+          <div class="card stat"><div class="si" style="background:#dcfce7">✅</div><div><div class="num" id="cResolved">0</div><div class="lbl">Resolved Complaints</div></div></div>
+          <div class="card stat"><div class="si" style="background:#fee2e2">⚠️</div><div><div class="num" id="cOverdue">0</div><div class="lbl">Overdue Complaints</div></div></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><h3>Status Distribution</h3><div class="chart-box"><canvas id="chStatus"></canvas></div></div>
+          <div class="card"><h3>Department-wise Complaints</h3><div class="chart-box"><canvas id="chDept"></canvas></div></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><h3>Recent Complaints <button class="btn btn-ghost btn-sm" data-goto="complaints">View all</button></h3><div id="recentList"></div></div>
+          <div class="card"><h3>High-Priority &amp; Overdue</h3><div id="urgentList"></div></div>
+        </div>
+      </section>
+
+      <!-- COMPLAINTS -->
+      <section class="view" id="view-complaints">
+        <div class="card">
+          <div class="filters">
+            <input id="fSearch" placeholder="🔍 Search by complaint ID or institution">
+            <select id="fStatus"><option value="">All statuses</option></select>
+            <select id="fCategory"><option value="">All categories</option></select>
+            <select id="fDept"><option value="">All bureaus/cells</option></select>
+            <select id="fPriority"><option value="">All priorities</option></select>
+            <select id="fSort">
+              <option value="sub-desc">Submitted: newest</option><option value="sub-asc">Submitted: oldest</option>
+              <option value="dl-asc">Deadline: soonest</option><option value="dl-desc">Deadline: latest</option>
+            </select>
+            <button class="btn btn-ghost" id="clearFilters">Clear filters</button>
+          </div>
+          <div class="meta" id="tableMeta"></div>
+          <div class="table-wrap">
+            <table><thead><tr><th>Complaint ID</th><th>Institution Name</th><th>Category</th><th>Assigned Bureau/Cell</th><th>Submitted</th><th>Priority</th><th>Status</th><th>Deadline</th><th>Actions</th></tr></thead>
+            <tbody id="tbody"></tbody></table>
+          </div>
+          <div id="tableEmpty" class="empty" style="display:none"><div class="e-ic">🗂️</div>No complaints match your search or filters.</div>
+        </div>
+      </section>
+
+      <!-- ADD -->
+      <section class="view" id="view-add">
+        <div class="card" style="max-width:820px">
+          <h3 id="formTitle">Register New Complaint</h3>
+          <form id="cForm" novalidate>
+            <input type="hidden" id="editId">
+            <div class="form-grid">
+              <div class="field full"><label>Institution name <span class="req">*</span></label><input id="iInst" maxlength="120" placeholder="e.g. Sunrise Institute of Technology (fictional)"><div class="err">Please enter the institution name (min 3 characters).</div></div>
+              <div class="field"><label>Complaint category <span class="req">*</span></label><select id="iCat"><option value="">Select category</option></select><div class="err">Please choose a category.</div></div>
+              <div class="field"><label>Assigned bureau/cell <span class="req">*</span></label><select id="iDept"><option value="">Select bureau/cell</option></select><div class="err">Please choose a bureau/cell.</div></div>
+              <div class="field full"><label>Complaint description <span class="req">*</span></label><textarea id="iDesc" rows="4" maxlength="1000" placeholder="Describe the issue. Do not include personal student information."></textarea><div class="err">Please enter a description (min 10 characters).</div></div>
+              <div class="field"><label>Priority <span class="req">*</span></label><select id="iPri"><option value="">Select priority</option></select><div class="err">Please choose a priority.</div></div>
+              <div class="field"><label>Submission date <span class="req">*</span></label><input type="date" id="iSub"><div class="err">Please choose a submission date.</div></div>
+              <div class="field"><label>Deadline <span class="req">*</span></label><input type="date" id="iDl"><div class="err" id="dlErr">Please choose a deadline on or after the submission date.</div></div>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-ghost" id="formCancel">Cancel</button>
+              <button type="submit" class="btn btn-primary" id="formSubmit">Save Complaint</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section class="view" id="view-reports">
+        <div class="card" style="margin-bottom:16px">
+          <div class="row"><b>Date filter (submission date):</b>
+            <input type="date" id="rFrom" style="width:auto"> to <input type="date" id="rTo" style="width:auto">
+            <button class="btn btn-ghost btn-sm" id="rClear">Show all dates</button>
+            <span class="meta" id="rMeta" style="margin:0"></span></div>
+        </div>
+        <div class="grid2">
+          <div class="card"><h3>Complaints by Status</h3><div class="chart-box"><canvas id="rStatus"></canvas></div></div>
+          <div class="card"><h3>Complaints by Category</h3><div class="chart-box"><canvas id="rCat"></canvas></div></div>
+          <div class="card"><h3>Department-wise Workload</h3><div class="chart-box"><canvas id="rDept"></canvas></div></div>
+          <div class="card"><h3>Resolved vs Unresolved</h3><div class="chart-box"><canvas id="rRes"></canvas></div></div>
+        </div>
+      </section>
+
+      <!-- NOTIFICATIONS -->
+      <section class="view" id="view-notifications">
+        <div class="card"><h3>Alerts &amp; Notifications</h3>
+          <p class="meta">In-app alerts calculated in your browser from complaint deadlines and priorities. No real emails or SMS are sent.</p>
+          <div id="notifList"></div></div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view" id="view-settings">
+        <div class="grid2">
+          <div class="card"><h3>Data Management</h3>
+            <p class="meta">Records are saved only in this browser (localStorage). Resetting restores the original fictional sample dataset and deletes your changes.</p>
+            <div class="row"><button class="btn btn-danger" id="resetBtn">Reset Demo Data</button><button class="btn btn-ghost" id="exportBtn">Export JSON</button></div>
+          </div>
+          <div class="card"><h3>About</h3>
+            <p style="margin-bottom:8px">A Smart India Hackathon prototype for the problem statement: <i>Integrated Dashboard for Monitoring and Tracking Institution-Related Complaint Cases Across AICTE Bureaus/Cells.</i></p>
+            <p class="meta">This prototype is not affiliated with or officially connected to AICTE. Authentication, multi-user access, and email/SMS alerts are planned future enhancements and are not implemented.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="footer">Hackathon prototype — demo data only; not connected to official AICTE systems.</footer>
+  </div>
+</div>
+
+<div class="modal-bg" id="detailModal"><div class="modal" id="detailBody"></div></div>
+<div class="modal-bg" id="confirmModal"><div class="modal" style="max-width:420px">
+  <h3>Confirm action</h3><p id="confirmText"></p>
+  <div class="modal-actions"><button class="btn btn-ghost" id="confirmNo">Cancel</button><button class="btn btn-danger" id="confirmYes">Confirm</button></div>
+</div></div>
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+(function(){
+"use strict";
+const KEY="aicte_cms_demo_v1";
+const STATUSES=["Submitted","Under Review","Action Taken","Resolved"];
+const CATEGORIES=["Fee-Related Complaint","Certificate Delay","Infrastructure","Academic Administration","Approval-Related Complaint","Other"];
+const DEPTS=["Administration","Approval and Compliance","Student Grievance","Infrastructure Review"];
+const PRIORITIES=["Low","Medium","High","Critical"];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const iso=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
+const addDays=n=>{const d=today();d.setDate(d.getDate()+n);return iso(d)};
+const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const fmt=s=>s?parse(s).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}):"—";
+const daysLeft=c=>Math.round((parse(c.deadline)-today())/864e5);
+const isOverdue=c=>c.status!=="Resolved"&&daysLeft(c)<0;
+const isApproaching=c=>c.status!=="Resolved"&&daysLeft(c)>=0&&daysLeft(c)<=3;
+const sCls=s=>"s-"+s.split(" ")[0];
+
+function sample(){
+  const rows=[
+   ["Sunrise Institute of Technology","Fee-Related Complaint","Student Grievance","High","Under Review",-30,-5,"Students report collection of fees beyond the approved fee structure for the current academic year."],
+   ["Green Valley College of Engineering","Certificate Delay","Administration","Medium","Submitted",-6,10,"Delay in issuing provisional degree certificates to graduated batch."],
+   ["Riverside Polytechnic","Infrastructure","Infrastructure Review","Critical","Action Taken",-20,-2,"Laboratory equipment listed in approval documents is reportedly not available."],
+   ["Northfield School of Management","Approval-Related Complaint","Approval and Compliance","High","Resolved",-45,-15,"Query regarding intake beyond approved capacity in MBA programme."],
+   ["Lakeshore Institute of Pharmacy","Academic Administration","Administration","Low","Submitted",-2,20,"Academic calendar not published for the new semester."],
+   ["Hillcrest College of Architecture","Infrastructure","Infrastructure Review","Medium","Under Review",-12,2,"Insufficient classroom space reported for design studios."],
+   ["Eastwood Engineering Academy","Fee-Related Complaint","Student Grievance","Critical","Submitted",-15,-1,"Refund of fees not processed for students who withdrew within the permitted period."],
+   ["Silver Oak Technical Institute","Certificate Delay","Administration","High","Action Taken",-25,1,"Migration certificates pending for more than 30 days."],
+   ["Meadowbrook College of Computer Applications","Other","Student Grievance","Low","Resolved",-40,-20,"General query about anti-ragging committee contact details."],
+   ["Westgate Institute of Hotel Management","Approval-Related Complaint","Approval and Compliance","Medium","Under Review",-9,12,"Clarification sought on extension of approval status display on website."],
+   ["Pinecrest Polytechnic College","Academic Administration","Administration","Medium","Resolved",-35,-10,"Mismatch between published and actual examination schedule."],
+   ["Bluewater Institute of Engineering","Infrastructure","Infrastructure Review","High","Submitted",-4,3,"Hostel facilities reportedly below declared standards."],
+   ["Maple Leaf College of Technology","Fee-Related Complaint","Student Grievance","Medium","Action Taken",-18,4,"Additional development fee charged without prior notice."],
+   ["Crescent Moon Institute of Design","Approval-Related Complaint","Approval and Compliance","Critical","Under Review",-22,-3,"Programme advertised without displayed approval reference."],
+   ["Golden Field Engineering College","Certificate Delay","Administration","Low","Submitted",-1,25,"Delay in issue of transfer certificate requests."],
+   ["Starlight Institute of Management Studies","Academic Administration","Administration","High","Resolved",-50,-25,"Faculty-student ratio concerns raised in feedback."],
+   ["Oakridge Technical College","Other","Student Grievance","Medium","Submitted",-3,14,"Grievance redressal portal link not working on institute website."],
+   ["Coral Bay Polytechnic","Infrastructure","Infrastructure Review","Low","Action Taken",-14,6,"Library resources not updated as per curriculum."]
+  ];
+  return rows.map((r,i)=>{
+    const id="CMP-2026-"+String(1001+i);
+    const sub=addDays(r[5]);
+    const hist=[{status:"Submitted",date:sub,note:"Complaint registered"}];
+    const idx=STATUSES.indexOf(r[4]);
+    for(let k=1;k<=idx;k++){const d=parse(sub);d.setDate(d.getDate()+k*3);if(d>today())d.setTime(today().getTime());hist.push({status:STATUSES[k],date:iso(d),note:"Status updated by administrator"})}
+    return {id,institution:r[0],category:r[1],dept:r[2],priority:r[3],status:r[4],submitted:sub,deadline:addDays(r[6]),description:r[7],history:hist};
+  });
+}
+
+let data=[];
+function valid(arr){return Array.isArray(arr)&&arr.every(c=>c&&typeof c.id==="string"&&typeof c.institution==="string"&&STATUSES.includes(c.status)&&/^\d{4}-\d{2}-\d{2}$/.test(c.deadline)&&/^\d{4}-\d{2}-\d{2}$/.test(c.submitted))}
+function load(){
+  try{const raw=localStorage.getItem(KEY);if(raw){const p=JSON.parse(raw);if(valid(p)){data=p;p.forEach(c=>{if(!Array.isArray(c.history))c.history=[]});return}console.warn("Stored data invalid; loading sample data.")}}catch(e){console.warn("Could not read stored data; loading sample data.",e)}
+  data=sample();save();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){toast("Could not save to browser storage.","error")}}
+function nextId(){const yr=new Date().getFullYear();let max=1000;data.forEach(c=>{const n=parseInt(c.id.split("-").pop(),10);if(n>max)max=n});let id;do{id=`CMP-${yr}-${++max}`}while(data.some(c=>c.id===id));return id}
+
+function toast(msg,type="success"){const t=document.createElement("div");t.className="toast "+type;t.textContent=msg;$("toasts").appendChild(t);setTimeout(()=>t.remove(),3200)}
+function confirmBox(text,onYes){$("confirmText").textContent=text;$("confirmModal").classList.add("open");$("confirmYes").onclick=()=>{$("confirmModal").classList.remove("open");onYes()};}
+$("confirmNo").onclick=()=>$("confirmModal").classList.remove("open");
+
+// fill selects
+function fill(sel,arr){arr.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o)})}
+fill($("fStatus"),STATUSES);fill($("fCategory"),CATEGORIES);fill($("fDept"),DEPTS);fill($("fPriority"),PRIORITIES);
+fill($("iCat"),CATEGORIES);fill($("iDept"),DEPTS);fill($("iPri"),PRIORITIES);
+
+// navigation
+const titles={dashboard:"Dashboard",complaints:"All Complaints",add:"Add Complaint",reports:"Reports & Analytics",notifications:"Notifications",settings:"Settings & About"};
+function go(v){
+  document.querySelectorAll(".view").forEach(s=>s.classList.toggle("active",s.id==="view-"+v));
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active",b.dataset.view===v));
+  $("pageTitle").textContent=titles[v];closeMenu();window.scrollTo(0,0);
+  if(v==="add"&&!$("editId").value)resetForm();
+  if(v==="reports")renderReports();
+}
+document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>go(b.dataset.view));
+document.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>go(b.dataset.goto));
+$("bellBtn").onclick=()=>go("notifications");
+function closeMenu(){$("sidebar").classList.remove("open");$("overlay").classList.remove("open")}
+$("menuBtn").onclick=()=>{$("sidebar").classList.add("open");$("overlay").classList.add("open")};
+$("overlay").onclick=closeMenu;
+
+// charts
+const charts={};
+const COLORS={status:["#6366f1","#f59e0b","#8b5cf6","#22c55e"],dept:["#1d4ed8","#0ea5e9","#14b8a6","#f97316"],cat:["#1d4ed8","#f59e0b","#14b8a6","#8b5cf6","#ef4444","#94a3b8"]};
+function chart(id,type,labels,values,colors,opts={}){
+  if(typeof Chart==="undefined"){const c=$(id);if(!c.dataset.fb){c.dataset.fb=1;c.parentElement.innerHTML=`<div class="empty">Charts unavailable (Chart.js could not load — check internet connection).</div>`}return}
+  const cfg={type,data:{labels,datasets:[{data:values,backgroundColor:colors,borderRadius:type==="bar"?6:0,borderWidth:type==="bar"?0:2,borderColor:"#fff"}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:type!=="bar",position:"bottom"}},...(type==="bar"?{scales:{y:{beginAtZero:true,ticks:{precision:0}}}}:{}),...opts}};
+  if(charts[id]){charts[id].data.labels=labels;charts[id].data.datasets[0].data=values;charts[id].update();return}
+  charts[id]=new Chart($(id),cfg);
+}
+const countBy=(arr,key,keys)=>keys.map(k=>arr.filter(c=>c[key]===k).length);
+
+function renderDashboard(){
+  const total=data.length,resolved=data.filter(c=>c.status==="Resolved").length,overdue=data.filter(isOverdue).length;
+  $("cTotal").textContent=total;$("cPending").textContent=total-resolved;$("cResolved").textContent=resolved;$("cOverdue").textContent=overdue;
+  chart("chStatus","doughnut",STATUSES,countBy(data,"status",STATUSES),COLORS.status);
+  chart("chDept","bar",DEPTS,countBy(data,"dept",DEPTS),COLORS.dept);
+  const recent=[...data].sort((a,b)=>b.submitted.localeCompare(a.submitted)).slice(0,5);
+  $("recentList").innerHTML=recent.length?recent.map(item).join(""):`<div class="empty">No complaints yet.</div>`;
+  const urgent=data.filter(c=>c.status!=="Resolved"&&(isOverdue(c)||c.priority==="High"||c.priority==="Critical")).sort((a,b)=>a.deadline.localeCompare(b.deadline)).slice(0,6);
+  $("urgentList").innerHTML=urgent.length?urgent.map(item).join(""):`<div class="empty"><div class="e-ic">🎉</div>No urgent complaints.</div>`;
+  bindOpen();
+}
+function item(c){return `<div class="list-item" data-open="${esc(c.id)}"><div><b>${esc(c.id)} · ${esc(c.institution)}</b><small>${esc(c.category)} · Due ${fmt(c.deadline)}</small></div><div class="row" style="gap:4px;justify-content:flex-end">${isOverdue(c)?'<span class="pill overdue-tag">Overdue</span>':""}<span class="pill p-${c.priority}">${c.priority}</span><span class="pill ${sCls(c.status)}">${c.status}</span></div></div>`}
+function bindOpen(){document.querySelectorAll("[data-open]").forEach(el=>el.onclick=()=>openDetail(el.dataset.open))}
+
+function filtered(){
+  const q=$("fSearch").value.trim().toLowerCase(),s=$("fStatus").value,cat=$("fCategory").value,d=$("fDept").value,p=$("fPriority").value,sort=$("fSort").value;
+  let r=data.filter(c=>(!q||c.id.toLowerCase().includes(q)||c.institution.toLowerCase().includes(q))&&(!s||c.status===s)&&(!cat||c.category===cat)&&(!d||c.dept===d)&&(!p||c.priority===p));
+  const [f,dir]=sort.split("-"),k=f==="sub"?"submitted":"deadline";
+  r.sort((a,b)=>dir==="asc"?a[k].localeCompare(b[k]):b[k].localeCompare(a[k]));
+  return r;
+}
+function renderTable(){
+  const r=filtered();
+  $("tableMeta").textContent=`Showing ${r.length} of ${data.length} complaints`;
+  $("tableEmpty").style.display=r.length?"none":"block";
+  $("tbody").innerHTML=r.map(c=>{const od=isOverdue(c);return `<tr class="${od?"is-overdue":""}">
+    <td><b>${esc(c.id)}</b></td><td>${esc(c.institution)}</td><td>${esc(c.category)}</td><td>${esc(c.dept)}</td><td>${fmt(c.submitted)}</td>
+    <td><span class="pill p-${c.priority}">${c.priority}</span></td>
+    <td><select data-status="${esc(c.id)}" aria-label="Change status">${STATUSES.map(s=>`<option ${s===c.status?"selected":""}>${s}</option>`).join("")}</select></td>
+    <td>${fmt(c.deadline)}${od?'<br><span class="pill overdue-tag">Overdue '+(-daysLeft(c))+'d</span>':""}</td>
+    <td><div class="row" style="flex-wrap:nowrap;gap:6px"><button class="btn btn-ghost btn-sm" data-open="${esc(c.id)}">View Details</button><button class="btn btn-ghost btn-sm" data-edit="${esc(c.id)}">Edit</button></div></td></tr>`}).join("");
+  document.querySelectorAll("[data-status]").forEach(sel=>sel.onchange=()=>changeStatus(sel.dataset.status,sel.value));
+  document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>startEdit(b.dataset.edit));
+  bindOpen();
+}
+["fSearch","fStatus","fCategory","fDept","fPriority","fSort"].forEach(id=>$(id).addEventListener(id==="fSearch"?"input":"change",renderTable));
+$("clearFilters").onclick=()=>{["fSearch","fStatus","fCategory","fDept","fPriority"].forEach(id=>$(id).value="");$("fSort").value="sub-desc";renderTable();toast("Filters cleared","info")};
+
+function changeStatus(id,status){
+  const c=data.find(x=>x.id===id);if(!c||c.status===status)return;
+  c.status=status;c.history.push({status,date:iso(today()),note:"Status updated by administrator"});
+  save();refresh();toast(`${id} marked as "${status}"`);
+  if($("detailModal").classList.contains("open"))openDetail(id);
+}
+
+function getNotifs(){
+  const n=[];
+  data.filter(isOverdue).forEach(c=>n.push({c,cls:"red",ic:"⛔",t:`Overdue by ${-daysLeft(c)} day(s)`,o:0}));
+  data.filter(isApproaching).forEach(c=>n.push({c,cls:"amber",ic:"⏰",t:daysLeft(c)===0?"Deadline is today":`Deadline in ${daysLeft(c)} day(s)`,o:1}));
+  data.filter(c=>c.priority==="Critical"&&c.status!=="Resolved").forEach(c=>n.push({c,cls:"purple",ic:"🚨",t:"Critical-priority complaint pending",o:2}));
+  return n.sort((a,b)=>a.o-b.o);
+}
+function renderNotifs(){
+  const n=getNotifs();$("bellCount").textContent=n.length;$("navBadge").textContent=n.length;
+  $("bellCount").style.display=$("navBadge").style.display=n.length?"":"none";
+  $("notifList").innerHTML=n.length?n.map(x=>`<div class="notif ${x.cls}" data-open="${esc(x.c.id)}"><span class="ni">${x.ic}</span><div><b>${x.t}</b><div>${esc(x.c.id)} · ${esc(x.c.institution)}</div><small class="meta">${esc(x.c.dept)} · ${x.c.priority} · ${x.c.status} · Due ${fmt(x.c.deadline)}</small></div></div>`).join(""):`<div class="empty"><div class="e-ic">🔕</div>No alerts right now.</div>`;
+  bindOpen();
+}
+
+function renderReports(){
+  const f=$("rFrom").value,t=$("rTo").value;
+  if(f&&t&&f>t){$("rMeta").textContent="'From' date is after 'To' date.";return}
+  const r=data.filter(c=>(!f||c.submitted>=f)&&(!t||c.submitted<=t));
+  $("rMeta").textContent=`${r.length} complaint(s) in range`;
+  chart("rStatus","bar",STATUSES,countBy(r,"status",STATUSES),COLORS.status);
+  chart("rCat","pie",CATEGORIES,countBy(r,"category",CATEGORIES),COLORS.cat);
+  chart("rDept","bar",DEPTS,countBy(r,"dept",DEPTS),COLORS.dept,{indexAxis:"y",scales:{x:{beginAtZero:true,ticks:{precision:0}}}});
+  const res=r.filter(c=>c.status==="Resolved").length;
+  chart("rRes","doughnut",["Resolved","Unresolved"],[res,r.length-res],["#22c55e","#ef4444"]);
+}
+$("rFrom").onchange=$("rTo").onchange=renderReports;
+$("rClear").onclick=()=>{$("rFrom").value=$("rTo").value="";renderReports()};
+
+function openDetail(id){
+  const c=data.find(x=>x.id===id);if(!c)return toast("Complaint not found","error");
+  const od=isOverdue(c);
+  $("detailBody").innerHTML=`<h3><span>Complaint ${esc(c.id)}</span><button class="btn btn-ghost btn-sm" id="dClose" aria-label="Close">✕</button></h3>
+  ${od?`<div class="demo-banner" style="background:#fee2e2;border-color:#fca5a5;color:#991b1b">⛔ This complaint is overdue by ${-daysLeft(c)} day(s).</div>`:""}
+  <dl class="dl"><dt>Institution</dt><dd>${esc(c.institution)}</dd><dt>Category</dt><dd>${esc(c.category)}</dd>
+  <dt>Assigned department</dt><dd>${esc(c.dept)}</dd><dt>Priority</dt><dd><span class="pill p-${c.priority}">${c.priority}</span></dd>
+  <dt>Submission date</dt><dd>${fmt(c.submitted)}</dd><dt>Deadline</dt><dd>${fmt(c.deadline)}</dd>
+  <dt>Current status</dt><dd><select id="dStatus" style="width:auto">${STATUSES.map(s=>`<option ${s===c.status?"selected":""}>${s}</option>`).join("")}</select></dd>
+  <dt>Description</dt><dd style="white-space:pre-wrap">${esc(c.description)}</dd></dl>
+  <b>Status history</b><div class="timeline" style="margin-top:10px">${c.history.map(h=>`<div class="tl"><b>${esc(h.status)}</b> <small>· ${fmt(h.date)}</small><div><small>${esc(h.note)}</small></div></div>`).join("")||"<small>No history.</small>"}</div>
+  <div class="modal-actions"><button class="btn btn-ghost" id="dDelete">Delete</button><button class="btn btn-ghost" id="dEdit">Edit</button><button class="btn btn-primary" id="dClose2">Close</button></div>`;
+  $("detailModal").classList.add("open");
+  const close=()=>$("detailModal").classList.remove("open");
+  $("dClose").onclick=$("dClose2").onclick=close;
+  $("dStatus").onchange=e=>changeStatus(c.id,e.target.value);
+  $("dEdit").onclick=()=>{close();startEdit(c.id)};
+  $("dDelete").onclick=()=>confirmBox(`Delete complaint ${c.id}? This cannot be undone.`,()=>{data=data.filter(x=>x.id!==c.id);save();close();refresh();toast(`${c.id} deleted`)});
+}
+$("detailModal").onclick=e=>{if(e.target.id==="detailModal")$("detailModal").classList.remove("open")};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("detailModal").classList.remove("open");$("confirmModal").classList.remove("open")}});
+
+// form
+const F={inst:$("iInst"),cat:$("iCat"),dept:$("iDept"),desc:$("iDesc"),pri:$("iPri"),sub:$("iSub"),dl:$("iDl")};
+function resetForm(){$("cForm").reset();$("editId").value="";F.sub.value=iso(today());F.dl.value=addDays(15);$("formTitle").textContent="Register New Complaint";$("formSubmit").textContent="Save Complaint";document.querySelectorAll(".field").forEach(f=>f.classList.remove("invalid"))}
+function startEdit(id){
+  const c=data.find(x=>x.id===id);if(!c)return;
+  go("complaints");$("editId").value=id;go("add");
+  F.inst.value=c.institution;F.cat.value=c.category;F.dept.value=c.dept;F.desc.value=c.description;F.pri.value=c.priority;F.sub.value=c.submitted;F.dl.value=c.deadline;
+  $("formTitle").textContent="Edit Complaint "+id;$("formSubmit").textContent="Update Complaint";
+}
+$("formCancel").onclick=()=>{resetForm();go("complaints")};
+$("cForm").onsubmit=e=>{
+  e.preventDefault();
+  const checks=[[F.inst,F.inst.value.trim().length>=3],[F.cat,!!F.cat.value],[F.dept,!!F.dept.value],[F.desc,F.desc.value.trim().length>=10],[F.pri,!!F.pri.value],[F.sub,!!F.sub.value],[F.dl,!!F.dl.value&&(!F.sub.value||F.dl.value>=F.sub.value)]];
+  let ok=true;checks.forEach(([el,v])=>{el.closest(".field").classList.toggle("invalid",!v);if(!v)ok=false});
+  if(!ok){toast("Please fix the highlighted fields.","error");return}
+  const vals={institution:F.inst.value.trim(),category:F.cat.value,dept:F.dept.value,description:F.desc.value.trim(),priority:F.pri.value,submitted:F.sub.value,deadline:F.dl.value};
+  const eid=$("editId").value;
+  if(eid){const c=data.find(x=>x.id===eid);Object.assign(c,vals);c.history.push({status:c.status,date:iso(today()),note:"Complaint details edited"});save();toast(`${eid} updated successfully`)}
+  else{const id=nextId();data.push({id,...vals,status:"Submitted",history:[{status:"Submitted",date:vals.submitted,note:"Complaint registered"}]});save();toast(`Complaint ${id} registered successfully`);
+    ["fSearch","fStatus","fCategory","fDept","fPriority"].forEach(i=>$(i).value="");$("fSort").value="sub-desc"}
+  resetForm();refresh();go("complaints");
+};
+document.querySelectorAll(".field input,.field select,.field textarea").forEach(el=>el.addEventListener("input",()=>el.closest(".field").classList.remove("invalid")));
+
+$("resetBtn").onclick=()=>confirmBox("Reset all data to the original fictional sample dataset? Your added complaints and status changes will be lost.",()=>{data=sample();save();refresh();toast("Demo data has been reset")});
+$("exportBtn").onclick=()=>{const b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="complaints-demo.json";a.click();URL.revokeObjectURL(a.href);toast("Exported JSON file","info")};
+
+function refresh(){renderDashboard();renderTable();renderNotifs();if($("view-reports").classList.contains("active"))renderReports()}
+
+setTimeout(()=>{load();$("loading").style.display="none";go("dashboard");refresh()},300);
+})();
+</script>
+</body>
+</html>
